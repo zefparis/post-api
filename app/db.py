@@ -1,21 +1,28 @@
 from __future__ import annotations
+from functools import lru_cache
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from .config import settings
 
-DB_URL = settings.db_url
 
-connect_args = {}
-if DB_URL.startswith("sqlite///") or DB_URL.startswith("sqlite:///"):
-    # SQLite needs this when used with FastAPI threads
-    connect_args = {"check_same_thread": False}
+@lru_cache(maxsize=1)
+def get_engine():
+    db_url = settings.db_url
+    connect_args = {"check_same_thread": False} if db_url.startswith("sqlite///") or db_url.startswith("sqlite:///") else {}
+    return create_engine(db_url, pool_pre_ping=True, future=True, connect_args=connect_args)
 
-engine = create_engine(DB_URL, pool_pre_ping=True, future=True, connect_args=connect_args)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+
+def get_sessionmaker():
+    return sessionmaker(bind=get_engine(), autoflush=False, autocommit=False, future=True)
+
+
+# Backward compat exports
+engine = get_engine()
+SessionLocal = get_sessionmaker()
 
 
 def get_db():
-    db = SessionLocal()
+    db = get_sessionmaker()()
     try:
         yield db
     finally:

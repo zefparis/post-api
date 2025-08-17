@@ -2,6 +2,7 @@
 set -e
 PORT_RESOLVED="${PORT:-8000}"
 echo "[boot] Using PORT=${PORT_RESOLVED}"
+echo "[boot] DB=${DATABASE_URL:-unset}"
 if command -v alembic >/dev/null 2>&1; then
   echo "[boot] running alembic upgrade"
   if ! alembic upgrade head; then

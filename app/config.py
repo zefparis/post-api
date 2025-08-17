@@ -5,6 +5,7 @@ import json
 from typing import List
 import os
 import re
+from sqlalchemy.engine.url import make_url
 
 
 _DB_POSTGRES_RE = re.compile(r"^postgres(ql)?(\+[\w]+)?://", re.I)
@@ -18,18 +19,20 @@ def _normalize_db_url(raw: str | None) -> str:
     if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
         v = v[1:-1].strip()
     # postgres -> postgresql(+psycopg2)
-    m = _DB_POSTGRES_RE.match(v)
-    if m:
-        has_ql = bool(m.group(1))
-        has_driver = bool(m.group(2))
-        if not has_ql:
+    if _DB_POSTGRES_RE.match(v):
+        if v.startswith("postgres://"):
             v = v.replace("postgres://", "postgresql://", 1)
-        if not has_driver:
+        if v.startswith("postgresql://") and "+" not in v.split("://", 1)[0]:
             v = v.replace("postgresql://", "postgresql+psycopg2://", 1)
     # sqlite ensure triple slash
     if v.startswith("sqlite://") and ":///" not in v:
         v = v.replace("sqlite://", "sqlite:///", 1)
-    return v
+    # validate via SQLAlchemy; fallback if invalid
+    try:
+        make_url(v)  # raises if invalid
+        return v
+    except Exception:
+        return "sqlite:///./local.db"
 
 
 def _parse_list(value: str | list | None) -> list:

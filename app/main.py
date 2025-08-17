@@ -13,7 +13,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from .db import engine
+from .db import get_engine
 from .models import Base
 from .config import settings
 from .routes import auth as auth_routes
@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
     app.state.ready = False
     # SQLite/dev: create_all; en prod -> Alembic
     try:
-        Base.metadata.create_all(bind=engine)
+        Base.metadata.create_all(bind=get_engine())
     except Exception:
         logger.exception("DB init failure")
     # (NE RIEN AJOUTER qui fait app.add_middleware ici)
