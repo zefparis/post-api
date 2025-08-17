@@ -1,6 +1,6 @@
-module.exports = {
+export default {
   darkMode: 'class',
-  content: ['./client/index.html','./client/src/**/*.{ts,tsx}'],
+  content: ['./index.html','./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: { bg:'#0b0f17', card:'#121826', ink:'#e5e7eb', accent:'#7c3aed' },
