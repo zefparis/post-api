@@ -1,0 +1,21 @@
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.local.db
+
+# node
+node_modules/
+client/dist/
+dist/
+
+# env & secrets
+.env
+.env.*
+!.env.example
+
+# misc
+.DS_Store
+.vscode/
+.idea/
