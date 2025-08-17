@@ -46,6 +46,19 @@ async def lifespan(app: FastAPI):
 # ---------- app ----------
 app = FastAPI(lifespan=lifespan)
 
+# ---------- log DB url (masked) ----------
+safe = settings.db_url
+try:
+    if "://" in safe:
+        scheme, rest = safe.split("://", 1)
+        if "@" in rest and ":" in rest.split("@", 1)[0]:
+            user = rest.split("@", 1)[0].split(":", 1)[0]
+            hostpart = rest.split("@", 1)[1]
+            safe = f"{scheme}://{user}:***@{hostpart}"
+except Exception:
+    pass
+logger.info(f"[db] Using {safe}")
+
 # ---------- prometheus (AVANT démarrage) ----------
 try:
     Instrumentator(

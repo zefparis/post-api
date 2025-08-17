@@ -4,6 +4,32 @@ from pydantic import field_validator
 import json
 from typing import List
 import os
+import re
+
+
+_DB_POSTGRES_RE = re.compile(r"^postgres(ql)?(\+[\w]+)?://", re.I)
+
+
+def _normalize_db_url(raw: str | None) -> str:
+    v = (raw or "").strip()
+    if not v:
+        return "sqlite:///./local.db"
+    # strip accidental quotes
+    if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
+        v = v[1:-1].strip()
+    # postgres -> postgresql(+psycopg2)
+    m = _DB_POSTGRES_RE.match(v)
+    if m:
+        has_ql = bool(m.group(1))
+        has_driver = bool(m.group(2))
+        if not has_ql:
+            v = v.replace("postgres://", "postgresql://", 1)
+        if not has_driver:
+            v = v.replace("postgresql://", "postgresql+psycopg2://", 1)
+    # sqlite ensure triple slash
+    if v.startswith("sqlite://") and ":///" not in v:
+        v = v.replace("sqlite://", "sqlite:///", 1)
+    return v
 
 
 def _parse_list(value: str | list | None) -> list:
@@ -25,7 +51,7 @@ def _parse_list(value: str | list | None) -> list:
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
-    DATABASE_URL: str = "sqlite+pysqlite:///./contentflow.db"
+    DATABASE_URL: str = "sqlite:///./local.db"
     JWT_SECRET: str = "changeme"
     APP_BASE_URL: str = "http://localhost:8000"
     PUBLIC_BASE_URL: str = "http://localhost:8000"
@@ -65,6 +91,11 @@ class Settings(BaseSettings):
         if domain and (v is None or "localhost" in str(v)):
             return f"https://{domain}"
         return v
+
+    @property
+    def db_url(self) -> str:
+        env_v = os.getenv("DATABASE_URL", self.DATABASE_URL)
+        return _normalize_db_url(env_v)
 
 
 settings = Settings()
