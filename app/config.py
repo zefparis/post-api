@@ -124,8 +124,17 @@ class Settings(BaseSettings):
 
     @property
     def db_url(self) -> str:
-        env_v = os.getenv("DATABASE_URL", self.DATABASE_URL)
-        return _normalize_db_url(env_v)
+        # Prefer a set of common provider keys, first non-empty wins
+        candidates = [
+            os.getenv("DATABASE_URL"),
+            os.getenv("RAILWAY_DATABASE_URL"),
+            os.getenv("POSTGRES_URL"),
+            self.DATABASE_URL,
+        ]
+        for c in candidates:
+            if c and str(c).strip():
+                return _normalize_db_url(str(c))
+        return _normalize_db_url(None)
 
 
 settings = Settings()
