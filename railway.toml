@@ -1,0 +1,11 @@
+# Railway configuration (Docker-based)
+[build]
+builder = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/healthz"
+restartPolicyType = "ON_FAILURE"
+
+[env]
+PORT = "8000"
+# Set PUBLIC_BASE_URL/APP_BASE_URL at runtime using your domain, e.g. https://${RAILWAY_PUBLIC_DOMAIN}
