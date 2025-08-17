@@ -9,6 +9,7 @@ from sqlalchemy.engine.url import make_url
 
 
 _DB_POSTGRES_RE = re.compile(r"^postgres(ql)?(\+[\w]+)?://", re.I)
+_LEADING_KV_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 
 
 def _normalize_db_url(raw: str | None) -> str:
@@ -18,6 +19,14 @@ def _normalize_db_url(raw: str | None) -> str:
     # strip accidental quotes
     if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
         v = v[1:-1].strip()
+    # strip accidental KEY= prefixes like "DATABASE_URL=postgresql://..." or "DB=..."
+    # Some platforms pass "DATABASE_URL=..." as the literal value of DATABASE_URL.
+    # Strip up to two leading KEY= segments defensively.
+    for _ in range(2):
+        if _LEADING_KV_RE.match(v):
+            v = v.split("=", 1)[1].strip()
+        else:
+            break
     # postgres -> postgresql(+psycopg2)
     if _DB_POSTGRES_RE.match(v):
         if v.startswith("postgres://"):
