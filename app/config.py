@@ -6,6 +6,7 @@ from typing import List
 import os
 import re
 from sqlalchemy.engine.url import make_url
+from urllib.parse import urlsplit, urlunsplit, quote
 
 
 _DB_POSTGRES_RE = re.compile(r"^postgres(ql)?(\+[\w]+)?://", re.I)
@@ -41,6 +42,23 @@ def _normalize_db_url(raw: str | None) -> str:
         make_url(v)  # raises if invalid
         return v
     except Exception:
+        # Attempt recovery: URL-encode credentials if present (common cause of parse failure)
+        try:
+            parts = urlsplit(v)
+            if parts.scheme:
+                netloc = parts.netloc
+                if "@" in netloc:
+                    auth, host = netloc.split("@", 1)
+                    if ":" in auth:
+                        user, pwd = auth.split(":", 1)
+                        auth_safe = f"{quote(user)}:{quote(pwd)}"
+                    else:
+                        auth_safe = quote(auth)
+                    v2 = urlunsplit((parts.scheme, f"{auth_safe}@{host}", parts.path, parts.query, parts.fragment))
+                    make_url(v2)
+                    return v2
+        except Exception:
+            pass
         return "sqlite:///./local.db"
 
 
